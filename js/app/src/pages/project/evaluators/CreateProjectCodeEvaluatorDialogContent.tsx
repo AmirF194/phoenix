@@ -13,7 +13,6 @@ import {
   mapSandboxConfigOptions,
 } from "@phoenix/components/evaluators/CodeEvaluatorLanguageSandboxFields";
 import {
-  getAllGeneratedSources,
   getDefaultCodeEvaluatorSource,
   extractCodeEvaluatorVariables,
   extractRequiredCodeEvaluatorVariables,
@@ -148,7 +147,9 @@ export const CreateProjectCodeEvaluatorDialogContent = ({
     `);
 
   const handleLanguageChange = (nextLanguage: CodeEvaluatorLanguage) => {
-    if (getAllGeneratedSources(language, grain).includes(sourceCode)) {
+    // Auto-swap only if sourceCode is still the generated placeholder — never
+    // overwrite user-authored code.
+    if (sourceCode === getDefaultCodeEvaluatorSource(language, grain)) {
       setSourceCode(getDefaultCodeEvaluatorSource(nextLanguage, grain));
     }
     setLanguage(nextLanguage);
