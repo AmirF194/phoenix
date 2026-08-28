@@ -4,8 +4,7 @@ import { graphql, useMutation, useRelayEnvironment } from "react-relay";
 import invariant from "tiny-invariant";
 
 import type { EvaluatorSubmitResult } from "@phoenix/agent/tools/llmEvaluatorDraft";
-import { useTimeRange } from "@phoenix/components/datetime";
-import { createDefaultFreeformOutputConfig } from "@phoenix/components/evaluators/CodeEvaluatorAnnotationSection";
+import { createDefaultFreeformOutputConfig } from "@phoenix/components/evaluators/EditCodeEvaluatorDialogContent";
 import { EditLLMEvaluatorDialogContent } from "@phoenix/components/evaluators/EditLLMEvaluatorDialogContent";
 import { getSpanEvaluatorDefaultMessages } from "@phoenix/components/evaluators/EvaluatorChatTemplate/utils";
 import { EvaluatorPlaygroundProvider } from "@phoenix/components/evaluators/EvaluatorPlaygroundProvider";
@@ -206,15 +205,15 @@ const CreateProjectEvaluatorDialog = ({
           ? `${creationMode.initialState.name} copy`
           : DEFAULT_LLM_EVALUATOR_STORE_VALUES.evaluator.globalName
         : creationMode.kind === "template"
-          ? creationMode.initialState.name
-          : creationMode.kind === "code"
-            ? creationMode.name
-            : DEFAULT_LLM_EVALUATOR_STORE_VALUES.evaluator.globalName;
+        ? creationMode.initialState.name
+        : creationMode.kind === "code"
+        ? creationMode.name
+        : DEFAULT_LLM_EVALUATOR_STORE_VALUES.evaluator.globalName;
     const outputConfigs =
       creationMode.kind === "code"
         ? creationMode.outputConfigs
-        : (seededState?.outputConfigs ??
-          DEFAULT_LLM_EVALUATOR_STORE_VALUES.outputConfigs);
+        : seededState?.outputConfigs ??
+          DEFAULT_LLM_EVALUATOR_STORE_VALUES.outputConfigs;
     return {
       ...DEFAULT_LLM_EVALUATOR_STORE_VALUES,
       evaluator: {
@@ -223,7 +222,7 @@ const CreateProjectEvaluatorDialog = ({
         description:
           creationMode.kind === "code"
             ? creationMode.description
-            : (seededState?.description ?? ""),
+            : seededState?.description ?? "",
         inputMapping: { pathMapping: {}, literalMapping: {} },
         kind: creationMode.kind === "code" ? "CODE" : "LLM",
         includeExplanation:
@@ -234,8 +233,8 @@ const CreateProjectEvaluatorDialog = ({
         seededState || creationMode.kind === "code"
           ? outputConfigs
           : outputConfigs[0]
-            ? [{ ...outputConfigs[0], name: defaultEvaluatorName }]
-            : [],
+          ? [{ ...outputConfigs[0], name: defaultEvaluatorName }]
+          : [],
       evaluatorMappingSource: defaultEvaluatorMappingSourceState(
         toEvaluatorMappingSourceGrain(scope.targetType)
       ),
@@ -339,7 +338,6 @@ function AttachCodeProjectEvaluatorDialog({
 }) {
   const store = useEvaluatorStoreInstance();
   const environment = useRelayEnvironment();
-  const { timeRangeISOStrings } = useTimeRange();
   const [error, setError] = useState<string>();
   const trackStoreForDirtyCheck = useEvaluatorFormDirtyCheck({
     registerDirtyCheck,
@@ -378,7 +376,6 @@ function AttachCodeProjectEvaluatorDialog({
       onScopeChange={onScopeChange}
       isSubmitting={isAddingCodeEvaluator}
       error={error}
-      onFieldChange={() => setError(undefined)}
       onSubmit={() => {
         setError(undefined);
         addCodeEvaluator({
@@ -400,11 +397,7 @@ function AttachCodeProjectEvaluatorDialog({
               setError(errors.map(({ message }) => message).join("\n"));
               return;
             }
-            void refetchProjectEvaluators({
-              environment,
-              projectId,
-              timeRange: timeRangeISOStrings,
-            })
+            void refetchProjectEvaluators({ environment, projectId })
               .then(onSuccess)
               .catch((refetchError: unknown) =>
                 setError(
@@ -440,7 +433,6 @@ function CreateLlmProjectEvaluatorDialog({
 }) {
   const store = useEvaluatorStoreInstance();
   const environment = useRelayEnvironment();
-  const { timeRangeISOStrings } = useTimeRange();
   const playgroundStore = usePlaygroundStore();
   const instanceId = usePlaygroundContext((state) => state.instances[0].id);
   invariant(instanceId != null, "instanceId is required");
@@ -491,11 +483,7 @@ function CreateLlmProjectEvaluatorDialog({
           enabled: true,
         },
       });
-      await refetchProjectEvaluators({
-        environment,
-        projectId,
-        timeRange: timeRangeISOStrings,
-      });
+      await refetchProjectEvaluators({ environment, projectId });
       onSuccess();
       return { ok: true, acceptedBy: "user", evaluator };
     } catch (submissionError) {
@@ -569,7 +557,11 @@ const ScratchLlmDialogContent = ({
         />
       }
       formRightPanel={
-        <ProjectEvaluatorScopePanel projectId={projectId} scope={scope} />
+        <ProjectEvaluatorScopePanel
+          projectId={projectId}
+          scope={scope}
+          showScopeFields={false}
+        />
       }
     />
   );
