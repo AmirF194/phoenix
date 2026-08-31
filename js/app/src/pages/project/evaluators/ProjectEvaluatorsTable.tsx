@@ -10,7 +10,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
 } from "react";
 import { graphql, readInlineData, usePaginationFragment } from "react-relay";
 import { useNavigate } from "react-router";
@@ -27,7 +26,7 @@ import {
 import { CompactEmptyState } from "@phoenix/components/core/empty";
 import { PythonSVG, TypeScriptSVG } from "@phoenix/components/core/icon/Icons";
 import { Truncate } from "@phoenix/components/core/utility/Truncate";
-import type { TimeRangeISOStrings } from "@phoenix/components/datetime";
+import { useTimeRange } from "@phoenix/components/datetime";
 import {
   EvaluatorAverageCost,
   EvaluatorCost,
@@ -135,7 +134,9 @@ const readRow = (
     graphql`
       fragment ProjectEvaluatorsTable_costs on ProjectEvaluator
       @inline
-      @argumentDefinitions(timeRange: { type: "TimeRange!" }) {
+      @argumentDefinitions(
+        timeRange: { type: "TimeRange", defaultValue: null }
+      ) {
         # TODO: These aggregate scans may become expensive as evaluator projects grow.
         # Move them onto ProjectEvaluator so CODE evaluators can skip them, and consider @defer.
         traceProject {
@@ -162,24 +163,36 @@ const readRow = (
 
 type TableRow = ReturnType<typeof readRow>;
 
+/**
+ * A row the create mutation has just added to the connection carries no
+ * `traceProject` until the range refetch lands, so both cost cells read it
+ * optionally and fall back to the empty state a row with no runs in range
+ * already shows.
+ */
+export const EvaluatorRowCost = ({ row }: { row: TableRow }) => (
+  <EvaluatorCost
+    evaluatorKind={row.evaluator.kind}
+    costSummary={row.traceProject?.costSummary}
+  />
+);
+
+export const EvaluatorRowAverageCost = ({ row }: { row: TableRow }) => (
+  <EvaluatorAverageCost
+    evaluatorKind={row.evaluator.kind}
+    costSummary={row.traceProject?.costSummary}
+    runCount={row.traceProject?.traceCount ?? 0}
+  />
+);
+
 export function ProjectEvaluatorsTable({
   project,
   projectId,
   filter,
-  timeRange,
-  initialFilter,
-  initialTimeRange,
 }: {
   project: ProjectEvaluatorsTable_project$key;
   projectId: string;
   /** Free-text name search from the toolbar; empty means unfiltered. */
   filter: string;
-  /** Selected project time range used by the cost aggregates. */
-  timeRange: TimeRangeISOStrings;
-  /** Normalized filter used to fetch the rows supplied by the owner query. */
-  initialFilter: string;
-  /** Time range used to fetch the rows supplied by the owner query. */
-  initialTimeRange: TimeRangeISOStrings;
 }) {
   "use no memo";
   const {
@@ -196,7 +209,7 @@ export function ProjectEvaluatorsTable({
         first: { type: "Int", defaultValue: 30 }
         after: { type: "String", defaultValue: null }
         filter: { type: "ProjectEvaluatorFilter", defaultValue: null }
-        timeRange: { type: "TimeRange!" }
+        timeRange: { type: "TimeRange", defaultValue: null }
       ) {
         evaluators(first: $first, after: $after, filter: $filter)
           @connection(key: "ProjectEvaluatorsTable_evaluators") {
@@ -212,33 +225,23 @@ export function ProjectEvaluatorsTable({
     project
   );
   const trimmedFilter = filter.trim();
-  const hasComparedInitialQueryInputs = useRef(false);
-  // Filtered server-side; a client-side filter would only see the loaded page.
+  // The cost columns are the only range-dependent data here, so the table
+  // reads the project's selected range itself rather than the owner query
+  // taking a range it has no other use for.
+  const { timeRangeISOStrings: timeRange } = useTimeRange();
+  // Filtered and cost-scoped server-side; a client-side filter would only see
+  // the loaded page.
   useEffect(() => {
-    if (!hasComparedInitialQueryInputs.current) {
-      hasComparedInitialQueryInputs.current = true;
-      const hasInitialFilter = trimmedFilter === initialFilter;
-      const hasInitialTimeRange =
-        timeRange.start === initialTimeRange.start &&
-        timeRange.end === initialTimeRange.end;
-      // Avoid a duplicate request only when the rows supplied by the owner
-      // query already answer the table's current filter and selected range.
-      if (hasInitialFilter && hasInitialTimeRange) {
-        return;
-      }
-    }
     startTransition(() => {
       refetch(
         {
-          after: null,
-          first: PAGE_SIZE,
           filter: trimmedFilter ? { col: "name", value: trimmedFilter } : null,
           timeRange,
         },
         { fetchPolicy: "store-and-network" }
       );
     });
-  }, [initialFilter, initialTimeRange, trimmedFilter, refetch, timeRange]);
+  }, [trimmedFilter, timeRange, refetch]);
   const loadNext = useCallback(() => {
     _loadNext(PAGE_SIZE, {
       UNSTABLE_extraVariables: {
@@ -334,25 +337,14 @@ export function ProjectEvaluatorsTable({
         header: "total cost",
         size: 120,
         meta: { textAlign: "right" },
-        cell: ({ row }) => (
-          <EvaluatorCost
-            evaluatorKind={row.original.evaluator.kind}
-            costSummary={row.original.traceProject.costSummary}
-          />
-        ),
+        cell: ({ row }) => <EvaluatorRowCost row={row.original} />,
       },
       {
         id: "averageCost",
         header: "avg cost / run",
         size: 200,
         meta: { textAlign: "right" },
-        cell: ({ row }) => (
-          <EvaluatorAverageCost
-            evaluatorKind={row.original.evaluator.kind}
-            costSummary={row.original.traceProject.costSummary}
-            runCount={row.original.traceProject.traceCount}
-          />
-        ),
+        cell: ({ row }) => <EvaluatorRowAverageCost row={row.original} />,
       },
       {
         id: "language",
@@ -414,7 +406,9 @@ export function ProjectEvaluatorsTable({
         cell: ({ row }) => (
           <Text color={row.original.filterCondition ? undefined : "text-700"}>
             {row.original.filterCondition ||
-              `All ${formatEvaluationTargetPlural(row.original.evaluationTarget)}`}
+              `All ${formatEvaluationTargetPlural(
+                row.original.evaluationTarget
+              )}`}
           </Text>
         ),
       },

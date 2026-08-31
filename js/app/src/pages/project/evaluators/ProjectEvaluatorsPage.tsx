@@ -5,7 +5,6 @@ import { Outlet, useParams } from "react-router";
 import invariant from "tiny-invariant";
 
 import { Flex, Skeleton, Text, View } from "@phoenix/components";
-import { useTimeRange } from "@phoenix/components/datetime";
 import { ProjectEvaluatorsTableProvider } from "@phoenix/contexts/ProjectEvaluatorsTableContext";
 import type { ProjectEvaluatorsPageQuery } from "@phoenix/pages/project/evaluators/__generated__/ProjectEvaluatorsPageQuery.graphql";
 import { AddProjectEvaluatorMenu } from "@phoenix/pages/project/evaluators/AddProjectEvaluatorMenu";
@@ -54,33 +53,18 @@ function ProjectEvaluatorsPageContent({
   filter: string;
   onFilterChange: (filter: string) => void;
 }) {
-  const { timeRangeISOStrings } = useTimeRange();
-  // The owner query supplies the initial filter and range. Subsequent toolbar,
-  // live, or user-selected changes refetch the pagination fragment in
-  // ProjectEvaluatorsTable without reloading this query.
-  const [initialFilter] = useState(() => filter.trim());
-  const [initialTimeRange] = useState(() => timeRangeISOStrings);
   const data = useLazyLoadQuery<ProjectEvaluatorsPageQuery>(
     graphql`
-      query ProjectEvaluatorsPageQuery(
-        $projectId: ID!
-        $filter: ProjectEvaluatorFilter
-        $timeRange: TimeRange!
-      ) {
+      query ProjectEvaluatorsPageQuery($projectId: ID!) {
         project: node(id: $projectId) {
           ... on Project {
             evaluatorCount
             ...ProjectEvaluatorsTable_project
-              @arguments(filter: $filter, timeRange: $timeRange)
           }
         }
       }
     `,
-    {
-      projectId,
-      filter: initialFilter ? { col: "name", value: initialFilter } : null,
-      timeRange: initialTimeRange,
-    },
+    { projectId },
     { fetchPolicy: "store-and-network" }
   );
   invariant(data.project, "project is required");
@@ -123,9 +107,6 @@ function ProjectEvaluatorsPageContent({
         project={data.project}
         projectId={projectId}
         filter={filter}
-        timeRange={timeRangeISOStrings}
-        initialFilter={initialFilter}
-        initialTimeRange={initialTimeRange}
       />
     </>
   );
