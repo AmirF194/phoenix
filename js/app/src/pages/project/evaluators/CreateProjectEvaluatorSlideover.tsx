@@ -537,7 +537,10 @@ const ScratchLlmDialogContent = ({
   isSubmitting: boolean;
   error?: string;
 }) => {
-  const submitHint = useProjectEvaluatorSubmitHint({ isFilterValid });
+  const submitHint = useProjectEvaluatorSubmitHint({
+    targetType: scope.targetType,
+    isFilterValid,
+  });
   return (
     <EditLLMEvaluatorDialogContent
       title={title}
