@@ -205,15 +205,15 @@ const CreateProjectEvaluatorDialog = ({
           ? `${creationMode.initialState.name} copy`
           : DEFAULT_LLM_EVALUATOR_STORE_VALUES.evaluator.globalName
         : creationMode.kind === "template"
-        ? creationMode.initialState.name
-        : creationMode.kind === "code"
-        ? creationMode.name
-        : DEFAULT_LLM_EVALUATOR_STORE_VALUES.evaluator.globalName;
+          ? creationMode.initialState.name
+          : creationMode.kind === "code"
+            ? creationMode.name
+            : DEFAULT_LLM_EVALUATOR_STORE_VALUES.evaluator.globalName;
     const outputConfigs =
       creationMode.kind === "code"
         ? creationMode.outputConfigs
-        : seededState?.outputConfigs ??
-          DEFAULT_LLM_EVALUATOR_STORE_VALUES.outputConfigs;
+        : (seededState?.outputConfigs ??
+          DEFAULT_LLM_EVALUATOR_STORE_VALUES.outputConfigs);
     return {
       ...DEFAULT_LLM_EVALUATOR_STORE_VALUES,
       evaluator: {
@@ -222,7 +222,7 @@ const CreateProjectEvaluatorDialog = ({
         description:
           creationMode.kind === "code"
             ? creationMode.description
-            : seededState?.description ?? "",
+            : (seededState?.description ?? ""),
         inputMapping: { pathMapping: {}, literalMapping: {} },
         kind: creationMode.kind === "code" ? "CODE" : "LLM",
         includeExplanation:
@@ -233,8 +233,8 @@ const CreateProjectEvaluatorDialog = ({
         seededState || creationMode.kind === "code"
           ? outputConfigs
           : outputConfigs[0]
-          ? [{ ...outputConfigs[0], name: defaultEvaluatorName }]
-          : [],
+            ? [{ ...outputConfigs[0], name: defaultEvaluatorName }]
+            : [],
       evaluatorMappingSource: defaultEvaluatorMappingSourceState(
         toEvaluatorMappingSourceGrain(scope.targetType)
       ),
