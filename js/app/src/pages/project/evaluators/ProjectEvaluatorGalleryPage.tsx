@@ -699,6 +699,11 @@ function EvaluatorGallery() {
                         )
                   )
                 }
+                onDuplicateEvaluator={() =>
+                  navigate(
+                    paths.galleryCreation.copyCode(selectedItem.evaluator.id)
+                  )
+                }
               />
             </Suspense>
           </ErrorBoundary>
@@ -783,9 +788,11 @@ function EvaluatorTemplateCardFooter({
 function CustomEvaluatorDetails({
   evaluator: evaluatorSummary,
   onUseEvaluator,
+  onDuplicateEvaluator,
 }: {
   evaluator: CustomEvaluator;
   onUseEvaluator: () => void;
+  onDuplicateEvaluator: () => void;
 }) {
   const data = useLazyLoadQuery<ProjectEvaluatorDetailsQueryType>(
     projectEvaluatorDetailsQueryNode,
@@ -809,6 +816,7 @@ function CustomEvaluatorDetails({
       <CodeCustomEvaluatorDetails
         evaluator={evaluator}
         onUseEvaluator={onUseEvaluator}
+        onDuplicateEvaluator={onDuplicateEvaluator}
       />
     );
   }
@@ -973,9 +981,11 @@ function LlmCustomEvaluatorDetails({
 function CodeCustomEvaluatorDetails({
   evaluator,
   onUseEvaluator,
+  onDuplicateEvaluator,
 }: {
   evaluator: CodeProjectEvaluatorDetails;
   onUseEvaluator: () => void;
+  onDuplicateEvaluator: () => void;
 }) {
   return (
     <Flex direction="column" gap="size-200" height="100%">
@@ -1011,7 +1021,13 @@ function CodeCustomEvaluatorDetails({
           </ExpandableContent>
         </div>
       </Flex>
-      <EvaluatorDetailsAction onPress={onUseEvaluator}>
+      <EvaluatorDetailsAction
+        onPress={onUseEvaluator}
+        secondaryAction={{
+          label: "Duplicate this evaluator",
+          onPress: onDuplicateEvaluator,
+        }}
+      >
         Use this evaluator
       </EvaluatorDetailsAction>
     </Flex>
@@ -1056,15 +1072,25 @@ function EvaluatorPromptPreview({
 function EvaluatorDetailsAction({
   children,
   onPress,
+  secondaryAction,
 }: {
   children: string;
   onPress: () => void;
+  secondaryAction?: {
+    label: string;
+    onPress: () => void;
+  };
 }) {
   return (
-    <Flex direction="column" css={stickyUseTemplateFooterCSS}>
+    <Flex direction="column" gap="size-100" css={stickyUseTemplateFooterCSS}>
       <Button variant="primary" onPress={onPress}>
         {children}
       </Button>
+      {secondaryAction ? (
+        <Button onPress={secondaryAction.onPress}>
+          {secondaryAction.label}
+        </Button>
+      ) : null}
     </Flex>
   );
 }

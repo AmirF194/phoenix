@@ -10,7 +10,10 @@ import type { projectEvaluatorOptionsQuery$data } from "@phoenix/pages/project/e
 import type { ProjectEvaluatorCreationMode } from "@phoenix/pages/project/evaluators/CreateProjectEvaluatorSlideover";
 import { generateMessageId } from "@phoenix/store";
 import type { AnnotationConfig } from "@phoenix/store/evaluatorStore";
-import type { CodeEvaluatorLanguage } from "@phoenix/types";
+import type {
+  CodeEvaluatorLanguage,
+  EvaluatorInputMapping,
+} from "@phoenix/types";
 import { isStringKeyedObject } from "@phoenix/typeUtils";
 import { convertPromptVersionMessagesToPlaygroundInstanceMessages } from "@phoenix/utils/promptUtils";
 
@@ -97,6 +100,13 @@ export const projectEvaluatorDetailsQueryNode = graphql`
         }
       }
       ... on CodeEvaluator {
+        sandboxConfig {
+          id
+        }
+        inputMapping {
+          pathMapping
+          literalMapping
+        }
         outputConfigs {
           __typename
           ... on CategoricalAnnotationConfig {
@@ -148,6 +158,8 @@ export type CodeProjectEvaluatorDetails = ProjectEvaluatorDetails & {
   readonly description: string | null;
   readonly language: NonNullable<ProjectEvaluatorDetails["language"]>;
   readonly sourceCode: string;
+  readonly sandboxConfig: { readonly id: string } | null;
+  readonly inputMapping: EvaluatorInputMapping;
   readonly outputConfigs: NonNullable<ProjectEvaluatorDetails["outputConfigs"]>;
 };
 
@@ -171,6 +183,7 @@ export function isCodeProjectEvaluatorDetails(
     typeof evaluator.name === "string" &&
     typeof evaluator.language === "string" &&
     typeof evaluator.sourceCode === "string" &&
+    evaluator.inputMapping != null &&
     Array.isArray(evaluator.outputConfigs)
   );
 }
@@ -247,6 +260,29 @@ export function buildAttachCodeCreationMode(
     ),
     variables,
     requiredVariables,
+  };
+}
+
+export function buildCopyCodeCreationMode(
+  evaluator: CodeProjectEvaluatorDetails
+): Extract<ProjectEvaluatorCreationMode, { kind: "copyCode" }> {
+  return {
+    kind: "copyCode",
+    initialState: {
+      name: evaluator.name,
+      copyName: `${evaluator.name}-copy`,
+      description: evaluator.description ?? "",
+      outputConfigs: convertProjectEvaluatorOutputConfigs(
+        evaluator.outputConfigs ?? []
+      ),
+      language: evaluator.language as CodeEvaluatorLanguage,
+      sourceCode: evaluator.sourceCode,
+      sandboxConfigId: evaluator.sandboxConfig?.id ?? null,
+      inputMapping: {
+        pathMapping: { ...evaluator.inputMapping.pathMapping },
+        literalMapping: { ...evaluator.inputMapping.literalMapping },
+      },
+    },
   };
 }
 

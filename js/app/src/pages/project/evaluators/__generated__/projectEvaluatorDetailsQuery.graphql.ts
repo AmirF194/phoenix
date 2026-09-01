@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<0b26ac4d73d8f15c0a464fcdd23c174e>>
+ * @generated SignedSource<<3d30f5dc3921d0a938b9111fcb404e7c>>
  * @lightSyntaxTransform
  */
 
@@ -21,6 +21,10 @@ export type projectEvaluatorDetailsQuery$data = {
     readonly __typename: string;
     readonly description?: string | null;
     readonly id?: string;
+    readonly inputMapping?: {
+      readonly literalMapping: any;
+      readonly pathMapping: any;
+    };
     readonly kind?: EvaluatorKind;
     readonly language?: Language;
     readonly name?: string;
@@ -81,6 +85,9 @@ export type projectEvaluatorDetailsQuery$data = {
         }>;
       } | null;
     };
+    readonly sandboxConfig?: {
+      readonly id: string;
+    } | null;
     readonly sourceCode?: string;
   };
 };
@@ -353,21 +360,59 @@ v18 = {
   ],
   "storageKey": null
 },
-v19 = {
+v19 = [
+  (v3/*:: as any*/)
+],
+v20 = {
+  "alias": null,
+  "args": null,
+  "concreteType": "SandboxConfig",
+  "kind": "LinkedField",
+  "name": "sandboxConfig",
+  "plural": false,
+  "selections": (v19/*:: as any*/),
+  "storageKey": null
+},
+v21 = {
+  "alias": null,
+  "args": null,
+  "concreteType": "EvaluatorInputMapping",
+  "kind": "LinkedField",
+  "name": "inputMapping",
+  "plural": false,
+  "selections": [
+    {
+      "alias": null,
+      "args": null,
+      "kind": "ScalarField",
+      "name": "pathMapping",
+      "storageKey": null
+    },
+    {
+      "alias": null,
+      "args": null,
+      "kind": "ScalarField",
+      "name": "literalMapping",
+      "storageKey": null
+    }
+  ],
+  "storageKey": null
+},
+v22 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
   "name": "sourceCode",
   "storageKey": null
 },
-v20 = {
+v23 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
   "name": "language",
   "storageKey": null
 },
-v21 = {
+v24 = {
   "alias": null,
   "args": null,
   "concreteType": null,
@@ -381,9 +426,7 @@ v21 = {
     (v12/*:: as any*/),
     {
       "kind": "InlineFragment",
-      "selections": [
-        (v3/*:: as any*/)
-      ],
+      "selections": (v19/*:: as any*/),
       "type": "Node",
       "abstractKey": "__isNode"
     }
@@ -493,9 +536,11 @@ return {
           {
             "kind": "InlineFragment",
             "selections": [
+              (v20/*:: as any*/),
+              (v21/*:: as any*/),
               (v13/*:: as any*/),
-              (v19/*:: as any*/),
-              (v20/*:: as any*/)
+              (v22/*:: as any*/),
+              (v23/*:: as any*/)
             ],
             "type": "CodeEvaluator",
             "abstractKey": null
@@ -536,7 +581,7 @@ return {
           {
             "kind": "InlineFragment",
             "selections": [
-              (v21/*:: as any*/),
+              (v24/*:: as any*/),
               {
                 "alias": null,
                 "args": null,
@@ -603,9 +648,11 @@ return {
           {
             "kind": "InlineFragment",
             "selections": [
+              (v20/*:: as any*/),
               (v21/*:: as any*/),
-              (v19/*:: as any*/),
-              (v20/*:: as any*/)
+              (v24/*:: as any*/),
+              (v22/*:: as any*/),
+              (v23/*:: as any*/)
             ],
             "type": "CodeEvaluator",
             "abstractKey": null
@@ -616,16 +663,16 @@ return {
     ]
   },
   "params": {
-    "cacheID": "c28e93537bb65edc0592e1dd328c2426",
+    "cacheID": "9f5ed0ef8a875d9a7a456935acf0af97",
     "id": null,
     "metadata": {},
     "name": "projectEvaluatorDetailsQuery",
     "operationKind": "query",
-    "text": "query projectEvaluatorDetailsQuery(\n  $id: ID!\n) {\n  evaluator: node(id: $id) {\n    __typename\n    ... on Evaluator {\n      __isEvaluator: __typename\n      id\n      name\n      description\n      kind\n    }\n    ... on LLMEvaluator {\n      outputConfigs {\n        __typename\n        ... on CategoricalAnnotationConfig {\n          name\n          optimizationDirection\n          values {\n            label\n            score\n          }\n        }\n        ... on ContinuousAnnotationConfig {\n          name\n          optimizationDirection\n          lowerBound\n          upperBound\n        }\n        ... on FreeformAnnotationConfig {\n          name\n          optimizationDirection\n          threshold\n          lowerBound\n          upperBound\n        }\n        ... on Node {\n          __isNode: __typename\n          id\n        }\n      }\n      promptVersion {\n        templateFormat\n        template {\n          __typename\n          ... on PromptChatTemplate {\n            messages {\n              ...promptUtils_promptMessages\n            }\n          }\n          ... on PromptStringTemplate {\n            template\n          }\n        }\n        tools {\n          tools {\n            __typename\n            ... on PromptToolFunction {\n              function {\n                parameters\n              }\n            }\n            ... on PromptToolRaw {\n              raw\n            }\n          }\n        }\n        id\n      }\n    }\n    ... on CodeEvaluator {\n      outputConfigs {\n        __typename\n        ... on CategoricalAnnotationConfig {\n          name\n          optimizationDirection\n          values {\n            label\n            score\n          }\n        }\n        ... on ContinuousAnnotationConfig {\n          name\n          optimizationDirection\n          lowerBound\n          upperBound\n        }\n        ... on FreeformAnnotationConfig {\n          name\n          optimizationDirection\n          threshold\n          lowerBound\n          upperBound\n        }\n        ... on Node {\n          __isNode: __typename\n          id\n        }\n      }\n      sourceCode\n      language\n    }\n    id\n  }\n}\n\nfragment promptUtils_promptMessages on PromptMessage {\n  content {\n    __typename\n    ... on TextContentPart {\n      text {\n        text\n      }\n    }\n  }\n  role\n}\n"
+    "text": "query projectEvaluatorDetailsQuery(\n  $id: ID!\n) {\n  evaluator: node(id: $id) {\n    __typename\n    ... on Evaluator {\n      __isEvaluator: __typename\n      id\n      name\n      description\n      kind\n    }\n    ... on LLMEvaluator {\n      outputConfigs {\n        __typename\n        ... on CategoricalAnnotationConfig {\n          name\n          optimizationDirection\n          values {\n            label\n            score\n          }\n        }\n        ... on ContinuousAnnotationConfig {\n          name\n          optimizationDirection\n          lowerBound\n          upperBound\n        }\n        ... on FreeformAnnotationConfig {\n          name\n          optimizationDirection\n          threshold\n          lowerBound\n          upperBound\n        }\n        ... on Node {\n          __isNode: __typename\n          id\n        }\n      }\n      promptVersion {\n        templateFormat\n        template {\n          __typename\n          ... on PromptChatTemplate {\n            messages {\n              ...promptUtils_promptMessages\n            }\n          }\n          ... on PromptStringTemplate {\n            template\n          }\n        }\n        tools {\n          tools {\n            __typename\n            ... on PromptToolFunction {\n              function {\n                parameters\n              }\n            }\n            ... on PromptToolRaw {\n              raw\n            }\n          }\n        }\n        id\n      }\n    }\n    ... on CodeEvaluator {\n      sandboxConfig {\n        id\n      }\n      inputMapping {\n        pathMapping\n        literalMapping\n      }\n      outputConfigs {\n        __typename\n        ... on CategoricalAnnotationConfig {\n          name\n          optimizationDirection\n          values {\n            label\n            score\n          }\n        }\n        ... on ContinuousAnnotationConfig {\n          name\n          optimizationDirection\n          lowerBound\n          upperBound\n        }\n        ... on FreeformAnnotationConfig {\n          name\n          optimizationDirection\n          threshold\n          lowerBound\n          upperBound\n        }\n        ... on Node {\n          __isNode: __typename\n          id\n        }\n      }\n      sourceCode\n      language\n    }\n    id\n  }\n}\n\nfragment promptUtils_promptMessages on PromptMessage {\n  content {\n    __typename\n    ... on TextContentPart {\n      text {\n        text\n      }\n    }\n  }\n  role\n}\n"
   }
 };
 })();
 
-(node as any).hash = "f024fbc74b4c1a8306536a2d98d2ab78";
+(node as any).hash = "6ec392bb562b143a2b4c3f683248846f";
 
 export default node;
