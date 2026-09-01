@@ -31,6 +31,7 @@ import { LLMPromptTemplate } from "./LLMPromptTemplate";
 import { LLMToolSchemasList } from "./LLMToolSchemasList";
 import { MimeTypeCodeBlock } from "./MimeTypeCodeBlock";
 import type { SpanIOValue } from "./types";
+import type { LLMToolDefinition } from "./utils";
 import {
   formatJSONForCopy,
   formatJSONStringsForCopy,
@@ -48,7 +49,7 @@ export function LLMInput({
   provider,
   input,
   inputMessages,
-  toolSchemas,
+  tools,
   promptTemplate,
   prompts,
   invocationParameters,
@@ -60,14 +61,14 @@ export function LLMInput({
   /** The raw input value of the span */
   input: SpanIOValue | null;
   inputMessages: AttributeMessage[];
-  /** The JSON schemas of the tools available to the LLM */
-  toolSchemas: string[];
+  /** The tools available to the LLM */
+  tools: LLMToolDefinition[];
   promptTemplate: AttributePromptTemplate | null;
   prompts: string[];
   /** The invocation parameters as a JSON string */
   invocationParameters: string;
 }) {
-  const toolCount = toolSchemas.length;
+  const toolCount = tools.length;
   let subTitleEl: ReactNode = null;
   if (modelName != null || toolCount > 0) {
     const normalizedProvider = provider?.toUpperCase();
@@ -143,7 +144,7 @@ export function LLMInput({
       copyText = formatJSONForCopy(inputMessages);
       break;
     case "tools":
-      copyText = formatJSONStringsForCopy(toolSchemas);
+      copyText = formatJSONStringsForCopy(tools.map((tool) => tool.jsonSchema));
       break;
     case "input":
       copyText = input?.value ?? null;
@@ -186,7 +187,7 @@ export function LLMInput({
             leadingItems={messageLeadingItems}
           />
         )}
-        {view === "tools" && <LLMToolSchemasList toolSchemas={toolSchemas} />}
+        {view === "tools" && <LLMToolSchemasList tools={tools} />}
         {isRawView && <MimeTypeCodeBlock {...input} />}
         {view === "prompts" && <LLMPromptsList prompts={prompts} />}
       </Card>
