@@ -690,18 +690,18 @@ function EvaluatorGallery() {
             <Suspense fallback={<EvaluatorDetailsSkeleton />}>
               <CustomEvaluatorDetails
                 evaluator={selectedItem.evaluator}
-                onUseEvaluator={() =>
+                onAttachCodeEvaluator={() =>
                   navigate(
-                    getCustomEvaluatorKind(selectedItem.evaluator) === "LLM"
-                      ? paths.galleryCreation.copyLlm(selectedItem.evaluator.id)
-                      : paths.galleryCreation.attachCode(
-                          selectedItem.evaluator.id
-                        )
+                    paths.galleryCreation.attachCode(selectedItem.evaluator.id)
                   )
                 }
                 onDuplicateEvaluator={() =>
                   navigate(
-                    paths.galleryCreation.copyCode(selectedItem.evaluator.id)
+                    getCustomEvaluatorKind(selectedItem.evaluator) === "LLM"
+                      ? paths.galleryCreation.copyLlm(selectedItem.evaluator.id)
+                      : paths.galleryCreation.copyCode(
+                          selectedItem.evaluator.id
+                        )
                   )
                 }
               />
@@ -787,11 +787,11 @@ function EvaluatorTemplateCardFooter({
 
 function CustomEvaluatorDetails({
   evaluator: evaluatorSummary,
-  onUseEvaluator,
+  onAttachCodeEvaluator,
   onDuplicateEvaluator,
 }: {
   evaluator: CustomEvaluator;
-  onUseEvaluator: () => void;
+  onAttachCodeEvaluator: () => void;
   onDuplicateEvaluator: () => void;
 }) {
   const data = useLazyLoadQuery<ProjectEvaluatorDetailsQueryType>(
@@ -807,7 +807,7 @@ function CustomEvaluatorDetails({
     return (
       <LlmCustomEvaluatorDetails
         evaluator={evaluator}
-        onUseEvaluator={onUseEvaluator}
+        onDuplicateEvaluator={onDuplicateEvaluator}
       />
     );
   }
@@ -815,7 +815,7 @@ function CustomEvaluatorDetails({
     return (
       <CodeCustomEvaluatorDetails
         evaluator={evaluator}
-        onUseEvaluator={onUseEvaluator}
+        onAttachCodeEvaluator={onAttachCodeEvaluator}
         onDuplicateEvaluator={onDuplicateEvaluator}
       />
     );
@@ -946,10 +946,10 @@ function AnnotationValues({
 
 function LlmCustomEvaluatorDetails({
   evaluator,
-  onUseEvaluator,
+  onDuplicateEvaluator,
 }: {
   evaluator: LlmProjectEvaluatorDetails;
-  onUseEvaluator: () => void;
+  onDuplicateEvaluator: () => void;
 }) {
   const promptTemplate = evaluator.promptVersion?.template;
   const messages: PlaygroundChatTemplate["messages"] =
@@ -971,7 +971,7 @@ function LlmCustomEvaluatorDetails({
       <CustomEvaluatorDetailsHeader evaluator={evaluator} />
       <EvaluatorOutputSummary outputConfigs={evaluator.outputConfigs} />
       <EvaluatorPromptPreview messages={messages} />
-      <EvaluatorDetailsAction onPress={onUseEvaluator}>
+      <EvaluatorDetailsAction onPress={onDuplicateEvaluator}>
         Duplicate this evaluator
       </EvaluatorDetailsAction>
     </Flex>
@@ -980,11 +980,11 @@ function LlmCustomEvaluatorDetails({
 
 function CodeCustomEvaluatorDetails({
   evaluator,
-  onUseEvaluator,
+  onAttachCodeEvaluator,
   onDuplicateEvaluator,
 }: {
   evaluator: CodeProjectEvaluatorDetails;
-  onUseEvaluator: () => void;
+  onAttachCodeEvaluator: () => void;
   onDuplicateEvaluator: () => void;
 }) {
   return (
@@ -1022,7 +1022,7 @@ function CodeCustomEvaluatorDetails({
         </div>
       </Flex>
       <EvaluatorDetailsAction
-        onPress={onUseEvaluator}
+        onPress={onAttachCodeEvaluator}
         secondaryAction={{
           label: "Duplicate this evaluator",
           onPress: onDuplicateEvaluator,
