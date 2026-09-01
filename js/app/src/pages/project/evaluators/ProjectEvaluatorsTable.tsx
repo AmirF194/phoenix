@@ -5,12 +5,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-} from "react";
+import { startTransition, useCallback, useEffect, useMemo } from "react";
 import { graphql, readInlineData, usePaginationFragment } from "react-relay";
 import { useNavigate } from "react-router";
 
