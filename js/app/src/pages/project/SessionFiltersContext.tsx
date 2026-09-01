@@ -1,6 +1,14 @@
 import type { PropsWithChildren } from "react";
-import { createContext, startTransition, useContext, useState } from "react";
+import {
+  createContext,
+  startTransition,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { useSearchParams } from "react-router";
 
+import { SESSION_FILTER_CONDITION_PARAM } from "@phoenix/constants/searchParams";
 import { joinFilterConditions } from "@phoenix/utils/filterConditionUtils";
 
 export type SessionFiltersContextType = {
@@ -23,7 +31,24 @@ export function useSessionFilters() {
 }
 
 export function SessionFiltersProvider(props: PropsWithChildren) {
-  const [filterCondition, setFilterConditionState] = useState<string>("");
+  // Writes back to the URL happen where the state is applied (SessionsTable),
+  // so only valid conditions are persisted. Whitespace-only text is normalized
+  // to the empty condition so the editor and query agree.
+  const [searchParams] = useSearchParams();
+  const rawUrlCondition =
+    searchParams.get(SESSION_FILTER_CONDITION_PARAM) ?? "";
+  const urlCondition = rawUrlCondition.trim() === "" ? "" : rawUrlCondition;
+  const [filterCondition, setFilterConditionState] =
+    useState<string>(urlCondition);
+
+  // Follow navigation that explicitly changes the filter while leaving
+  // unrelated search-param updates alone. An applied filter's own URL write is
+  // a no-op here because the draft already contains that same condition.
+  useEffect(() => {
+    startTransition(() => {
+      setFilterConditionState(urlCondition);
+    });
+  }, [urlCondition]);
 
   function setFilterCondition(condition: string) {
     startTransition(() => {

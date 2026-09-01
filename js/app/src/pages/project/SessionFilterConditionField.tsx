@@ -141,8 +141,20 @@ function compareBySectionRank(a: Completion, b: Completion): number {
   return getSectionRank(a) - getSectionRank(b);
 }
 
+/**
+ * The argument handed to `onValidCondition`: the condition that passed
+ * validation, plus whether this settlement is of the value the field mounted
+ * with -- a condition already in the URL -- rather than one applied while the
+ * field was on screen. Consumers that persist applied conditions to the URL
+ * must skip initial settlements so a mount does not rewrite the URL.
+ */
+export type SessionFilterValidConditionArgs = {
+  condition: string;
+  isInitialSettlement: boolean;
+};
+
 type SessionFilterConditionFieldProps = {
-  onValidCondition: (condition: string) => void;
+  onValidCondition: (args: SessionFilterValidConditionArgs) => void;
   vocabulary: readonly SessionFilterVocabularyTerm[];
   placeholder?: string;
 };
@@ -266,7 +278,7 @@ export function SessionFilterConditionField(
         // it would turn "no filter chosen" into a history entry.
         recordValidCondition(condition);
       }
-      onValidCondition(condition);
+      onValidCondition({ condition, isInitialSettlement });
     },
     [recordValidCondition, onValidCondition]
   );

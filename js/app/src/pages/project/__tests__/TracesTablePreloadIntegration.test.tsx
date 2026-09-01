@@ -19,7 +19,10 @@ const relayMocks = vi.hoisted(() => ({
 
 const fieldMocks = vi.hoisted(() => ({
   props: null as null | {
-    onValidCondition: (condition: string) => void;
+    onValidCondition: (args: {
+      condition: string;
+      isInitialSettlement: boolean;
+    }) => void;
   },
 }));
 
@@ -176,7 +179,10 @@ describe("TracesTable preload integration", () => {
     expect(relayMocks.refetch).not.toHaveBeenCalled();
 
     await act(async () => {
-      fieldMocks.props?.onValidCondition("num_spans >= 5");
+      fieldMocks.props?.onValidCondition({
+        condition: "num_spans >= 5",
+        isInitialSettlement: false,
+      });
     });
 
     expect(relayMocks.refetch).toHaveBeenCalledTimes(1);

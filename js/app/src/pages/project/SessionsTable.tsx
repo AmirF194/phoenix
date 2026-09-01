@@ -15,6 +15,7 @@ import {
 import React, {
   startTransition,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -49,6 +50,7 @@ import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 import { LatencyText } from "@phoenix/components/trace/LatencyText";
 import { SessionTokenCosts } from "@phoenix/components/trace/SessionTokenCosts";
 import { SessionTokenCount } from "@phoenix/components/trace/SessionTokenCount";
+import { SESSION_FILTER_CONDITION_PARAM } from "@phoenix/constants/searchParams";
 import { useStreamState } from "@phoenix/contexts/StreamStateContext";
 import { useTracingContext } from "@phoenix/contexts/TracingContext";
 import { useSessionPagination } from "@phoenix/pages/trace/SessionPaginationContext";
@@ -72,6 +74,7 @@ import {
   SessionOutputValueTooltipCell,
 } from "./IOValueTooltipCell";
 import { SessionColumnSelector } from "./SessionColumnSelector";
+import type { SessionFilterValidConditionArgs } from "./SessionFilterConditionField";
 import { SessionFilterConditionField } from "./SessionFilterConditionField";
 import { SessionsTableAside } from "./SessionsTableAside";
 import { SessionsTableEmpty } from "./SessionsTableEmpty";
@@ -113,7 +116,7 @@ function SessionFilterConditionFieldWithVocabulary({
   onValidCondition,
 }: {
   projectId: string;
-  onValidCondition: (condition: string) => void;
+  onValidCondition: (args: SessionFilterValidConditionArgs) => void;
 }) {
   const data = useLazyLoadQuery<SessionsTableSessionFilterVocabularyQuery>(
     graphql`
@@ -202,6 +205,44 @@ export function SessionsTable(props: SessionsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [validSessionFilterCondition, setValidSessionFilterCondition] =
     useState<string>("");
+  // Persist the applied filter to the URL. Written only from the valid-
+  // condition handler, so in-progress edits and render churn never touch the
+  // URL; other params are preserved.
+  // React Router 8.2 recreates this setter whenever location.search changes.
+  // Keep the latest one behind a stable callback so unrelated param changes
+  // do not flow into the field's validation effect and revalidate its value.
+  const [, setSearchParams] = useSearchParams();
+  const setSearchParamsRef = useRef(setSearchParams);
+  useEffect(() => {
+    setSearchParamsRef.current = setSearchParams;
+  }, [setSearchParams]);
+  const handleValidSessionFilterCondition = useCallback(
+    ({ condition, isInitialSettlement }: SessionFilterValidConditionArgs) => {
+      setValidSessionFilterCondition(condition);
+      // The mount settlement is the URL's condition coming back around, not
+      // something the user applied -- writing it would touch the URL on every
+      // visit to the tab.
+      if (isInitialSettlement) {
+        return;
+      }
+      setSearchParamsRef.current(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          // Nothing seeds a default condition here, so an absent param and an
+          // empty one mean the same thing -- delete on clear to keep shared
+          // URLs tidy.
+          if (condition === "") {
+            next.delete(SESSION_FILTER_CONDITION_PARAM);
+          } else {
+            next.set(SESSION_FILTER_CONDITION_PARAM, condition);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    []
+  );
   const { fetchKey } = useStreamState();
   // Source the time range directly here (rather than only via the preloaded
   // parent query) so a live window sliding forward refetches with the current
@@ -618,13 +659,13 @@ export function SessionsTable(props: SessionsTableProps) {
                 fallback={
                   <SessionFilterConditionField
                     vocabulary={EMPTY_SESSION_FILTER_VOCABULARY}
-                    onValidCondition={setValidSessionFilterCondition}
+                    onValidCondition={handleValidSessionFilterCondition}
                   />
                 }
               >
                 <SessionFilterConditionFieldWithVocabulary
                   projectId={data.id}
-                  onValidCondition={setValidSessionFilterCondition}
+                  onValidCondition={handleValidSessionFilterCondition}
                 />
               </Suspense>
             </div>

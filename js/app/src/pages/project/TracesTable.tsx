@@ -80,6 +80,7 @@ import { TraceTokenCount } from "@phoenix/components/trace/TraceTokenCount";
 import type { ISpanItem } from "@phoenix/components/trace/types";
 import type { SpanTreeNode } from "@phoenix/components/trace/utils";
 import { createSpanTree } from "@phoenix/components/trace/utils";
+import { TRACE_FILTER_CONDITION_PARAM } from "@phoenix/constants/searchParams";
 import { useStreamState } from "@phoenix/contexts/StreamStateContext";
 import { useTracingContext } from "@phoenix/contexts/TracingContext";
 import { TraceSpanAnnotationTooltipFilterActions } from "@phoenix/pages/project/AnnotationTooltipFilterActions";
@@ -114,6 +115,7 @@ import {
   normalizeAnnotationColumnOrder,
   TRACE_ANNOTATIONS_COLUMN_ID,
 } from "./tableUtils";
+import type { TraceFilterValidConditionArgs } from "./TraceFilterConditionField";
 import { TraceFilterConditionField } from "./TraceFilterConditionField";
 
 type TracesTableProps = {
@@ -141,7 +143,7 @@ function TraceFilterConditionFieldWithVocabulary({
 }: {
   projectId: string;
   timeRange: { start?: string; end?: string };
-  onValidCondition: (condition: string) => void;
+  onValidCondition: (args: TraceFilterValidConditionArgs) => void;
 }) {
   const data = useLazyLoadQuery<TracesTableTraceFilterVocabularyQuery>(
     graphql`
@@ -294,7 +296,7 @@ function spanTreeToNestedSpanTableRows<TSpan extends ISpanItem>(params: {
 }
 
 export function TracesTable(props: TracesTableProps) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   //we need a reference to the scrolling element for logic down below
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
@@ -302,6 +304,43 @@ export function TracesTable(props: TracesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [validTraceFilterCondition, setValidTraceFilterCondition] =
     useState<string>("");
+  // Persist the applied filter to the URL. Written only from the valid-
+  // condition handler, so in-progress edits and render churn never touch the
+  // URL; other params are preserved.
+  // React Router 8.2 recreates this setter whenever location.search changes.
+  // Keep the latest one behind a stable callback so unrelated param changes
+  // do not flow into the field's validation effect and revalidate its value.
+  const setSearchParamsRef = useRef(setSearchParams);
+  useEffect(() => {
+    setSearchParamsRef.current = setSearchParams;
+  }, [setSearchParams]);
+  const handleValidTraceFilterCondition = useCallback(
+    ({ condition, isInitialSettlement }: TraceFilterValidConditionArgs) => {
+      setValidTraceFilterCondition(condition);
+      // The mount settlement is the URL's condition coming back around, not
+      // something the user applied -- writing it would touch the URL on every
+      // visit to the tab.
+      if (isInitialSettlement) {
+        return;
+      }
+      setSearchParamsRef.current(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          // Unlike the spans tab, nothing seeds a default condition here, so
+          // an absent param and an empty one mean the same thing -- delete on
+          // clear to keep shared URLs tidy.
+          if (condition === "") {
+            next.delete(TRACE_FILTER_CONDITION_PARAM);
+          } else {
+            next.set(TRACE_FILTER_CONDITION_PARAM, condition);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    []
+  );
   const { fetchKey } = useStreamState();
   // Source the time range directly here (rather than only via the preloaded
   // parent query) so a live window sliding forward refetches with the filter
@@ -1111,14 +1150,14 @@ export function TracesTable(props: TracesTableProps) {
                 fallback={
                   <TraceFilterConditionField
                     vocabulary={EMPTY_TRACE_FILTER_VOCABULARY}
-                    onValidCondition={setValidTraceFilterCondition}
+                    onValidCondition={handleValidTraceFilterCondition}
                   />
                 }
               >
                 <TraceFilterConditionFieldWithVocabulary
                   projectId={data.id}
                   timeRange={timeRangeISOStrings}
-                  onValidCondition={setValidTraceFilterCondition}
+                  onValidCondition={handleValidTraceFilterCondition}
                 />
               </Suspense>
             </div>
